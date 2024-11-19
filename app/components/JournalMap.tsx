@@ -199,58 +199,88 @@ export default function JournalMap() {
         </p>
 
         {selectedLocation && (
-          <form onSubmit={handleAddEntry} className="mb-4">
+          <form
+            onSubmit={handleAddEntry}
+            className="mb-4 bg-gray-100 p-4 rounded-lg"
+          >
             <h2 className="text-lg font-semibold mb-2 text-black">
               {isEditing ? "Edit Entry" : "Add New Entry"}
             </h2>
 
-            <div className="mb-4">
-              <label
-                htmlFor="title"
-                className="block text-sm font-medium text-black mb-1"
-              >
-                Title
-              </label>
-              <input
-                id="title"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-                value={newEntry.title || ""}
-                onChange={(e) =>
-                  setNewEntry({ ...newEntry, title: e.target.value })
-                }
-                placeholder="Entry title"
-              />
+            <div className="flex mb-4 space-x-2">
+              <div className="flex-1">
+                <label
+                  htmlFor="title"
+                  className="block text-sm font-medium text-black mb-1"
+                >
+                  Title
+                </label>
+                <input
+                  id="title"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                  value={newEntry.title || ""}
+                  onChange={(e) =>
+                    setNewEntry({ ...newEntry, title: e.target.value })
+                  }
+                  placeholder="Entry title"
+                />
+              </div>
+              <div className="flex-1">
+                <label
+                  htmlFor="mood"
+                  className="block text-sm font-medium text-black mb-1"
+                >
+                  Mood
+                </label>
+                <select
+                  id="mood"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                  value={newEntry.mood || ""}
+                  onChange={(e) =>
+                    setNewEntry({ ...newEntry, mood: e.target.value })
+                  }
+                >
+                  <option value="">Select a mood</option>
+                  {Object.entries(moodToColor).map(([mood, color]) => (
+                    <option
+                      key={mood}
+                      value={mood}
+                      style={{
+                        backgroundColor: color,
+                        color: mood === "Happiness" ? "black" : "white",
+                      }}
+                    >
+                      {mood}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
+
             <div className="mb-4">
-              <label
-                htmlFor="mood"
-                className="block text-sm font-medium text-black mb-1"
+              <button
+                type="button"
+                onClick={getRandomPrompt}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center text-sm"
               >
-                Mood
-              </label>
-              <select
-                id="mood"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-                value={newEntry.mood || ""}
-                onChange={(e) =>
-                  setNewEntry({ ...newEntry, mood: e.target.value })
-                }
-              >
-                <option value="">Select a mood</option>
-                {Object.entries(moodToColor).map(([mood, color]) => (
-                  <option
-                    key={mood}
-                    value={mood}
-                    style={{
-                      backgroundColor: color,
-                      color: mood === "Happiness" ? "black" : "white",
-                    }}
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Get Prompt
+              </button>
+              {showPrompt && (
+                <div className="mt-2 p-2 bg-yellow-100 rounded-md">
+                  <p className="text-xs italic mb-1 text-black">
+                    {currentPrompt}
+                  </p>
+                  <button
+                    onClick={() => setShowPrompt(false)}
+                    className="text-xs text-gray-600 hover:text-gray-800"
                   >
-                    {mood}
-                  </option>
-                ))}
-              </select>
+                    Close
+                  </button>
+                </div>
+              )}
             </div>
+
             <div className="mb-4">
               <label
                 htmlFor="description"
@@ -269,57 +299,31 @@ export default function JournalMap() {
                 rows={3}
               />
             </div>
-            <div className="mb-4">
-              <button
-                type="button"
-                onClick={getRandomPrompt}
-                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center"
-              >
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Get Prompt
-              </button>
-              {showPrompt && (
-                <div className="mt-2 p-4 bg-yellow-100 rounded-md">
-                  <p className="italic mb-2 text-black">{currentPrompt}</p>
-                  <button
-                    onClick={() => setShowPrompt(false)}
-                    className="text-sm text-gray-600 hover:text-gray-800"
-                  >
-                    Close
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="mb-4">
-              <label
-                htmlFor="date"
-                className="block text-sm font-medium text-black mb-1"
-              >
-                Date
-              </label>
-              <input
-                id="date"
-                type="date"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-                value={
-                  newEntry.date
-                    ? new Date(newEntry.date).toISOString().split("T")[0]
-                    : ""
-                }
-                onChange={(e) =>
-                  setNewEntry({
-                    ...newEntry,
-                    date: new Date(e.target.value).toISOString(),
-                  })
-                }
-              />
-            </div>
-            <div className="flex justify-between">
+
+            <div className="flex items-center space-x-2">
+              <div className="flex-1">
+                <input
+                  id="date"
+                  type="date"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                  value={
+                    newEntry.date
+                      ? new Date(newEntry.date).toISOString().split("T")[0]
+                      : ""
+                  }
+                  onChange={(e) =>
+                    setNewEntry({
+                      ...newEntry,
+                      date: new Date(e.target.value).toISOString(),
+                    })
+                  }
+                />
+              </div>
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
               >
-                {isEditing ? "Update Entry" : "Save Entry"}
+                {isEditing ? "Update" : "Save"}
               </button>
               <button
                 type="button"
