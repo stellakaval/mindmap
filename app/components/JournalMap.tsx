@@ -12,7 +12,8 @@ import {
   MessageSquare,
 } from "lucide-react";
 
-mapboxgl.accessToken = "pk.eyJ1Ijoic2thdmFsIiwiYSI6ImNtM25ncDE1MTBiZmUybG16MWZ6Y2RmcXEifQ.j1qvxxSCuvP83O01zizWAQ";
+mapboxgl.accessToken =
+  "pk.eyJ1Ijoic2thdmFsIiwiYSI6ImNtM25ncDE1MTBiZmUybG16MWZ6Y2RmcXEifQ.j1qvxxSCuvP83O01zizWAQ";
 
 interface JournalEntry {
   id: number;
