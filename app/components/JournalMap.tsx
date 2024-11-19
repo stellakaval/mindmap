@@ -9,20 +9,10 @@ import {
   Search,
   Filter,
   Calendar,
-  BookOpen,
   MessageSquare,
 } from "lucide-react";
 
 mapboxgl.accessToken = "pk.eyJ1Ijoic2thdmFsIiwiYSI6ImNtM25ncDE1MTBiZmUybG16MWZ6Y2RmcXEifQ.j1qvxxSCuvP83O01zizWAQ";
-
-interface JournalTemplate {
-  id: string;
-  name: string;
-  fields: {
-    name: string;
-    type: "text" | "textarea" | "number" | "date" | "mood";
-  }[];
-}
 
 interface JournalEntry {
   id: number;
@@ -31,8 +21,6 @@ interface JournalEntry {
   location: [number, number];
   date: string;
   description: string;
-  template?: string;
-  fields?: { [key: string]: string };
 }
 
 const moodToColor = {
@@ -52,28 +40,6 @@ const moodToColor = {
   Mystery: "#4B0082",
 };
 
-const journalTemplates: JournalTemplate[] = [
-  {
-    id: "gratitude",
-    name: "Gratitude Journal",
-    fields: [
-      { name: "What are you grateful for today?", type: "textarea" },
-      { name: "How did this make you feel?", type: "text" },
-      { name: "Gratitude level", type: "number" },
-    ],
-  },
-  {
-    id: "goal-tracking",
-    name: "Goal Tracking",
-    fields: [
-      { name: "Goal", type: "text" },
-      { name: "Progress", type: "textarea" },
-      { name: "Obstacles", type: "textarea" },
-      { name: "Next steps", type: "text" },
-    ],
-  },
-];
-
 const journalingPrompts = [
   "What are three things you're grateful for today?",
   "Describe a challenge you overcame recently.",
@@ -92,11 +58,8 @@ export default function JournalMap() {
   const [filterMood, setFilterMood] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] =
-    useState<JournalTemplate | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState("");
   const [showPrompt, setShowPrompt] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<{ [key: number]: mapboxgl.Marker }>({});
@@ -115,7 +78,6 @@ export default function JournalMap() {
         setSelectedLocation([e.lngLat.lng, e.lngLat.lat]);
         setNewEntry({});
         setIsEditing(false);
-        setSelectedTemplate(null);
         if (tempMarker.current) {
           tempMarker.current.remove();
         }
@@ -181,8 +143,6 @@ export default function JournalMap() {
         location: selectedLocation,
         mood: newEntry.mood,
         description: newEntry.description || "",
-        template: selectedTemplate?.id,
-        fields: newEntry.fields,
       };
       setEntries((prevEntries) =>
         isEditing
@@ -192,7 +152,6 @@ export default function JournalMap() {
       setNewEntry({});
       setSelectedLocation(null);
       setIsEditing(false);
-      setSelectedTemplate(null);
       if (tempMarker.current) {
         tempMarker.current.remove();
         tempMarker.current = null;
@@ -204,9 +163,6 @@ export default function JournalMap() {
     setNewEntry(entry);
     setSelectedLocation(entry.location);
     setIsEditing(true);
-    setSelectedTemplate(
-      journalTemplates.find((t) => t.id === entry.template) || null
-    );
     map.current?.flyTo({
       center: entry.location,
       zoom: 17,
@@ -225,7 +181,6 @@ export default function JournalMap() {
     setNewEntry({});
     setSelectedLocation(null);
     setIsEditing(false);
-    setSelectedTemplate(null);
     if (tempMarker.current) {
       tempMarker.current.remove();
       tempMarker.current = null;
@@ -235,152 +190,29 @@ export default function JournalMap() {
   return (
     <div className="flex h-screen w-screen">
       <div className="w-96 h-full overflow-y-auto bg-white shadow-lg p-6">
-        <h1 className="text-2xl font-bold mb-4">UC Berkeley MindMap</h1>
-        <p className="text-sm text-gray-600 mb-4">
+        <h1 className="text-2xl font-bold mb-4 text-black">
+          UC Berkeley MindMap
+        </h1>
+        <p className="text-sm text-black mb-4">
           Click on the map to create a new entry.
         </p>
 
-        <div className="mb-4">
-          <div className="flex items-center mb-2">
-            <Search className="w-4 h-4 mr-2" />
-            <input
-              type="text"
-              placeholder="Search entries..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
-          <div className="flex items-center mb-2">
-            <Filter className="w-4 h-4 mr-2" />
-            <select
-              value={filterMood}
-              onChange={(e) => setFilterMood(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="">All Moods</option>
-              {Object.keys(moodToColor).map((mood) => (
-                <option key={mood} value={mood}>
-                  {mood}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center">
-            <Calendar className="w-4 h-4 mr-2" />
-            <input
-              type="date"
-              value={dateRange.start}
-              onChange={(e) =>
-                setDateRange((prev) => ({ ...prev, start: e.target.value }))
-              }
-              className="w-1/2 px-3 py-2 border border-gray-300 rounded-md mr-2"
-            />
-            <input
-              type="date"
-              value={dateRange.end}
-              onChange={(e) =>
-                setDateRange((prev) => ({ ...prev, end: e.target.value }))
-              }
-              className="w-1/2 px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-between mb-4">
-          <button
-            onClick={() => {
-              getRandomPrompt();
-              setShowTemplates(false);
-            }}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center"
-          >
-            <MessageSquare className="w-4 h-4 mr-2" />
-            Get Prompt
-          </button>
-          <button
-            onClick={() => {
-              setShowTemplates(true);
-              setShowPrompt(false);
-            }}
-            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors flex items-center"
-          >
-            <BookOpen className="w-4 h-4 mr-2" />
-            Use Template
-          </button>
-        </div>
-
-        {showPrompt && (
-          <div className="mb-4 p-4 bg-yellow-100 rounded-md">
-            <h3 className="font-bold mb-2">Journaling Prompt:</h3>
-            <p className="italic mb-2">{currentPrompt}</p>
-            <button
-              onClick={() => setShowPrompt(false)}
-              className="text-sm text-gray-600 hover:text-gray-800"
-            >
-              Close
-            </button>
-          </div>
-        )}
-
         {selectedLocation && (
           <form onSubmit={handleAddEntry} className="mb-4">
-            <h2 className="text-lg font-semibold mb-2">
+            <h2 className="text-lg font-semibold mb-2 text-black">
               {isEditing ? "Edit Entry" : "Add New Entry"}
             </h2>
-
-            {showTemplates && (
-              <div className="mb-4">
-                <label
-                  htmlFor="template"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Journal Template
-                </label>
-                <select
-                  id="template"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  value={selectedTemplate?.id || ""}
-                  onChange={(e) => {
-                    const template = journalTemplates.find(
-                      (t) => t.id === e.target.value
-                    );
-                    setSelectedTemplate(template || null);
-                    if (template) {
-                      setNewEntry({
-                        ...newEntry,
-                        template: template.id,
-                        fields: template.fields.reduce(
-                          (acc, field) => ({
-                            ...acc,
-                            [field.name]: "",
-                          }),
-                          {}
-                        ),
-                      });
-                    }
-                  }}
-                >
-                  <option value="">Select a template</option>
-                  {journalTemplates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             <div className="mb-4">
               <label
                 htmlFor="title"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-black mb-1"
               >
                 Title
               </label>
               <input
                 id="title"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
                 value={newEntry.title || ""}
                 onChange={(e) =>
                   setNewEntry({ ...newEntry, title: e.target.value })
@@ -391,13 +223,13 @@ export default function JournalMap() {
             <div className="mb-4">
               <label
                 htmlFor="mood"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-black mb-1"
               >
                 Mood
               </label>
               <select
                 id="mood"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
                 value={newEntry.mood || ""}
                 onChange={(e) =>
                   setNewEntry({ ...newEntry, mood: e.target.value })
@@ -418,84 +250,56 @@ export default function JournalMap() {
                 ))}
               </select>
             </div>
-            {selectedTemplate && (
-              <div className="mb-4">
-                {selectedTemplate.fields.map((field) => (
-                  <div key={field.name} className="mb-2">
-                    <label
-                      htmlFor={field.name}
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      {field.name}
-                    </label>
-                    {field.type === "textarea" ? (
-                      <textarea
-                        id={field.name}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        value={newEntry.fields?.[field.name] || ""}
-                        onChange={(e) =>
-                          setNewEntry({
-                            ...newEntry,
-                            fields: {
-                              ...newEntry.fields,
-                              [field.name]: e.target.value,
-                            },
-                          })
-                        }
-                        rows={3}
-                      />
-                    ) : (
-                      <input
-                        id={field.name}
-                        type={field.type}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        value={newEntry.fields?.[field.name] || ""}
-                        onChange={(e) =>
-                          setNewEntry({
-                            ...newEntry,
-                            fields: {
-                              ...newEntry.fields,
-                              [field.name]: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            {!selectedTemplate && (
-              <div className="mb-4">
-                <label
-                  htmlFor="description"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  value={newEntry.description || ""}
-                  onChange={(e) =>
-                    setNewEntry({ ...newEntry, description: e.target.value })
-                  }
-                  placeholder="Entry description"
-                  rows={3}
-                />
-              </div>
-            )}
+            <div className="mb-4">
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-black mb-1"
+              >
+                Description
+              </label>
+              <textarea
+                id="description"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                value={newEntry.description || ""}
+                onChange={(e) =>
+                  setNewEntry({ ...newEntry, description: e.target.value })
+                }
+                placeholder="Entry description"
+                rows={3}
+              />
+            </div>
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={getRandomPrompt}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center"
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Get Prompt
+              </button>
+              {showPrompt && (
+                <div className="mt-2 p-4 bg-yellow-100 rounded-md">
+                  <p className="italic mb-2 text-black">{currentPrompt}</p>
+                  <button
+                    onClick={() => setShowPrompt(false)}
+                    className="text-sm text-gray-600 hover:text-gray-800"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="mb-4">
               <label
                 htmlFor="date"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-black mb-1"
               >
                 Date
               </label>
               <input
                 id="date"
                 type="date"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
                 value={
                   newEntry.date
                     ? new Date(newEntry.date).toISOString().split("T")[0]
@@ -519,7 +323,7 @@ export default function JournalMap() {
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                className="px-4 py-2 bg-gray-300 text-black rounded-md hover:bg-gray-400 transition-colors"
               >
                 Cancel
               </button>
@@ -528,16 +332,10 @@ export default function JournalMap() {
         )}
 
         <div className="mt-4">
-          <h3 className="font-bold mb-2">Recent Entries</h3>
+          <h3 className="font-bold mb-2 text-black">All Entries</h3>
           {entries
-            .filter(
-              (entry) =>
-                entry.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                (filterMood === "" || entry.mood === filterMood) &&
-                (dateRange.start === "" ||
-                  new Date(entry.date) >= new Date(dateRange.start)) &&
-                (dateRange.end === "" ||
-                  new Date(entry.date) <= new Date(dateRange.end))
+            .sort(
+              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
             )
             .map((entry) => (
               <div
@@ -548,8 +346,8 @@ export default function JournalMap() {
                   onClick={() => handleEntryClick(entry)}
                   className="cursor-pointer"
                 >
-                  <h4 className="font-semibold">{entry.title}</h4>
-                  <p className="text-sm text-gray-600">
+                  <h4 className="font-semibold text-black">{entry.title}</h4>
+                  <p className="text-sm text-black">
                     {new Date(entry.date).toLocaleString()}
                   </p>
                   <div className="flex items-center mt-1">
@@ -566,14 +364,10 @@ export default function JournalMap() {
                     </span>
                   </div>
                   {entry.description && (
-                    <p className="text-sm mt-1">{entry.description}</p>
+                    <p className="text-sm mt-1 text-black">
+                      {entry.description}
+                    </p>
                   )}
-                  {entry.fields &&
-                    Object.entries(entry.fields).map(([key, value]) => (
-                      <p key={key} className="text-sm mt-1">
-                        <strong>{key}:</strong> {value}
-                      </p>
-                    ))}
                 </div>
                 <button
                   onClick={() => handleDeleteEntry(entry.id)}
@@ -584,6 +378,55 @@ export default function JournalMap() {
                 </button>
               </div>
             ))}
+        </div>
+
+        <div className="mt-4">
+          <div className="mb-4">
+            <div className="flex items-center mb-2">
+              <Search className="w-4 h-4 mr-2" />
+              <input
+                type="text"
+                placeholder="Search entries..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+              />
+            </div>
+            <div className="flex items-center mb-2">
+              <Filter className="w-4 h-4 mr-2" />
+              <select
+                value={filterMood}
+                onChange={(e) => setFilterMood(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+              >
+                <option value="">All Moods</option>
+                {Object.keys(moodToColor).map((mood) => (
+                  <option key={mood} value={mood}>
+                    {mood}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center">
+              <Calendar className="w-4 h-4 mr-2" />
+              <input
+                type="date"
+                value={dateRange.start}
+                onChange={(e) =>
+                  setDateRange((prev) => ({ ...prev, start: e.target.value }))
+                }
+                className="w-1/2 px-3 py-2 border border-gray-300 rounded-md mr-2 text-black"
+              />
+              <input
+                type="date"
+                value={dateRange.end}
+                onChange={(e) =>
+                  setDateRange((prev) => ({ ...prev, end: e.target.value }))
+                }
+                className="w-1/2 px-3 py-2 border border-gray-300 rounded-md text-black"
+              />
+            </div>
+          </div>
         </div>
       </div>
       <div ref={mapContainer} className="flex-grow h-full" />
