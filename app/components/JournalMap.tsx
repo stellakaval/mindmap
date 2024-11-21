@@ -25,29 +25,73 @@ interface JournalEntry {
 }
 
 const moodToColor = {
-  Happiness: "#FFFF00",
-  Calmness: "#0000FF",
-  Energy: "#FF0000",
-  Sadness: "#808080",
-  Envy: "#00FF00",
-  Creativity: "#800080",
-  Warmth: "#FFA500",
-  Serenity: "#40E0D0",
-  Passion: "#8B0000",
-  Nostalgia: "#8B4513",
-  Anger: "#000000",
-  Confidence: "#FFD700",
-  Peacefulness: "#98FB98",
-  Mystery: "#4B0082",
+  Happiness: "#FFD700", // Bright gold
+  Joy: "#FFA500", // Vibrant orange
+  Excitement: "#FF4500", // Vivid red-orange
+  Love: "#FF1493", // Deep pink
+  Passion: "#FF0000", // Pure red
+  Energy: "#FF4D00", // Bright orange-red
+  Confidence: "#FF8C00", // Dark orange
+  Warmth: "#FF7F50", // Coral
+  Creativity: "#9932CC", // Dark orchid
+  Inspiration: "#8A2BE2", // Blue violet
+  Calmness: "#4169E1", // Royal blue
+  Serenity: "#40E0D0", // Turquoise
+  Peacefulness: "#98FB98", // Pale green
+  Tranquility: "#E0FFFF", // Light cyan
+  Sadness: "#4682B4", // Steel blue
+  Melancholy: "#708090", // Slate gray
+  Nostalgia: "#DEB887", // Burlywood
+  Contemplation: "#778899", // Light slate gray
+  Anxiety: "#9ACD32", // Yellow-green
+  Stress: "#ADFF2F", // Green-yellow
+  Fear: "#800080", // Purple
+  Anger: "#8B0000", // Dark red
+  Rage: "#B22222", // Firebrick red
+  Envy: "#00A86B", // Jade green
+  Jealousy: "#228B22", // Forest green
+  Mystery: "#4B0082", // Indigo
+  Intrigue: "#483D8B", // Dark slate blue
+  Boredom: "#A9A9A9", // Dark gray
+  Apathy: "#D3D3D3", // Light gray
+  Disgust: "#556B2F", // Dark olive green
 };
 
-const journalingPrompts = [
-  "What are three things you're grateful for today?",
-  "Describe a challenge you overcame recently.",
-  "What's a goal you're working towards? How are you progressing?",
-  "Write about a person who has positively influenced your life.",
-  "Describe your ideal day. What would you do?",
-];
+const getMoodEmoji = (mood: string) => {
+  const emojiMap: { [key: string]: string } = {
+    Happiness: "😊",
+    Joy: "😄",
+    Excitement: "🤩",
+    Love: "❤️",
+    Passion: "🔥",
+    Energy: "⚡",
+    Confidence: "💪",
+    Warmth: "🌞",
+    Creativity: "🎨",
+    Inspiration: "💡",
+    Calmness: "😌",
+    Serenity: "🧘",
+    Peacefulness: "🕊️",
+    Tranquility: "🌿",
+    Sadness: "😢",
+    Melancholy: "🥀",
+    Nostalgia: "🕰️",
+    Contemplation: "🤔",
+    Anxiety: "😰",
+    Stress: "😓",
+    Fear: "😨",
+    Anger: "😠",
+    Rage: "🤬",
+    Envy: "😒",
+    Jealousy: "💚",
+    Mystery: "🕵️",
+    Intrigue: "🧐",
+    Boredom: "😑",
+    Apathy: "😐",
+    Disgust: "🤢",
+  };
+  return emojiMap[mood] || "";
+};
 
 export default function JournalMap() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -59,8 +103,6 @@ export default function JournalMap() {
   const [filterMood, setFilterMood] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [isEditing, setIsEditing] = useState(false);
-  const [currentPrompt, setCurrentPrompt] = useState("");
-  const [showPrompt, setShowPrompt] = useState(false);
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<{ [key: number]: mapboxgl.Marker }>({});
@@ -113,11 +155,16 @@ export default function JournalMap() {
     filteredEntries.forEach((entry) => {
       const el = document.createElement("div");
       el.className = "marker";
-      el.style.backgroundColor =
+
+      // Create a radial gradient
+      const color =
         moodToColor[entry.mood as keyof typeof moodToColor] || "#000000";
-      el.style.width = "20px";
-      el.style.height = "20px";
+      el.style.background = `radial-gradient(circle, ${color} 0%, rgba(255,255,255,0) 70%)`;
+      el.style.width = "40px";
+      el.style.height = "40px";
       el.style.borderRadius = "50%";
+      el.style.opacity = "0.8";
+
       const marker = new mapboxgl.Marker(el)
         .setLngLat(entry.location)
         .addTo(map.current!);
@@ -128,22 +175,21 @@ export default function JournalMap() {
     });
   }, [entries, searchTerm, filterMood, dateRange]);
 
-  const getRandomPrompt = () => {
-    const randomIndex = Math.floor(Math.random() * journalingPrompts.length);
-    setCurrentPrompt(journalingPrompts[randomIndex]);
-    setShowPrompt(true);
-  };
-
   const handleAddEntry = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newEntry.title && selectedLocation && newEntry.mood) {
+    if (
+      newEntry.title &&
+      selectedLocation &&
+      newEntry.mood &&
+      newEntry.description
+    ) {
       const entry: JournalEntry = {
         id: isEditing ? (newEntry.id as number) : Date.now(),
         title: newEntry.title,
         date: newEntry.date || new Date().toISOString(),
         location: selectedLocation,
         mood: newEntry.mood,
-        description: newEntry.description || "",
+        description: newEntry.description,
       };
       setEntries((prevEntries) =>
         isEditing
@@ -157,6 +203,8 @@ export default function JournalMap() {
         tempMarker.current.remove();
         tempMarker.current = null;
       }
+    } else {
+      alert("Please fill out all fields before submitting.");
     }
   };
 
@@ -195,7 +243,9 @@ export default function JournalMap() {
           UC Berkeley MindMap
         </h1>
         <p className="text-sm text-black mb-4">
-          Click on the map to create a new entry.
+          Map your journey of emotions. Click anywhere on the map to pin a
+          memory, capturing your mood, location, and personal reflections. Each
+          marker tells a story of your experiences across Berkeley's landscape.
         </p>
 
         {selectedLocation && (
@@ -207,81 +257,56 @@ export default function JournalMap() {
               {isEditing ? "Edit Entry" : "Add New Entry"}
             </h2>
 
-            <div className="flex mb-4 space-x-2">
-              <div className="flex-1">
-                <label
-                  htmlFor="title"
-                  className="block text-sm font-medium text-black mb-1"
-                >
-                  Title
-                </label>
-                <input
-                  id="title"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-                  value={newEntry.title || ""}
-                  onChange={(e) =>
-                    setNewEntry({ ...newEntry, title: e.target.value })
-                  }
-                  placeholder="Entry title"
-                />
-              </div>
-              <div className="flex-1">
-                <label
-                  htmlFor="mood"
-                  className="block text-sm font-medium text-black mb-1"
-                >
-                  Mood
-                </label>
-                <select
-                  id="mood"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-                  value={newEntry.mood || ""}
-                  onChange={(e) =>
-                    setNewEntry({ ...newEntry, mood: e.target.value })
-                  }
-                >
-                  <option value="">Select a mood</option>
-                  {Object.entries(moodToColor).map(([mood, color]) => (
-                    <option
-                      key={mood}
-                      value={mood}
-                      style={{
-                        backgroundColor: color,
-                        color: mood === "Happiness" ? "black" : "white",
-                      }}
-                    >
-                      {mood}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
             <div className="mb-4">
-              <button
-                type="button"
-                onClick={getRandomPrompt}
-                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center text-sm"
+              <label
+                htmlFor="mood"
+                className="block text-sm font-medium text-black mb-1"
               >
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Get Prompt
-              </button>
-              {showPrompt && (
-                <div className="mt-2 p-2 bg-yellow-100 rounded-md">
-                  <p className="text-xs italic mb-1 text-black">
-                    {currentPrompt}
-                  </p>
-                  <button
-                    onClick={() => setShowPrompt(false)}
-                    className="text-xs text-gray-600 hover:text-gray-800"
+                Mood
+              </label>
+              <select
+                id="mood"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                value={newEntry.mood || ""}
+                onChange={(e) =>
+                  setNewEntry({ ...newEntry, mood: e.target.value })
+                }
+                required
+              >
+                <option value="">Select a mood</option>
+                {Object.entries(moodToColor).map(([mood, color]) => (
+                  <option
+                    key={mood}
+                    value={mood}
+                    style={{
+                      backgroundColor: color,
+                      color: mood === "Happiness" ? "black" : "white",
+                    }}
                   >
-                    Close
-                  </button>
-                </div>
-              )}
+                    {mood} {getMoodEmoji(mood)}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="mb-4">
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-black mb-1"
+              >
+                Title
+              </label>
+              <input
+                id="title"
+                type="text"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black font-bold mb-2"
+                value={newEntry.title || ""}
+                onChange={(e) =>
+                  setNewEntry({ ...newEntry, title: e.target.value })
+                }
+                placeholder="Enter title"
+                required
+              />
               <label
                 htmlFor="description"
                 className="block text-sm font-medium text-black mb-1"
@@ -295,44 +320,45 @@ export default function JournalMap() {
                 onChange={(e) =>
                   setNewEntry({ ...newEntry, description: e.target.value })
                 }
-                placeholder="Entry description"
-                rows={3}
+                placeholder="Enter your description"
+                rows={4}
+                required
+                maxLength={200}
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <div className="flex-1">
-                <input
-                  id="date"
-                  type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-                  value={
-                    newEntry.date
-                      ? new Date(newEntry.date).toISOString().split("T")[0]
-                      : ""
-                  }
-                  onChange={(e) =>
-                    setNewEntry({
-                      ...newEntry,
-                      date: new Date(e.target.value).toISOString(),
-                    })
-                  }
-                />
-              </div>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            <div className="mb-4">
+              <label
+                htmlFor="date"
+                className="block text-sm font-medium text-black mb-1"
               >
-                {isEditing ? "Update" : "Save"}
-              </button>
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="px-4 py-2 bg-gray-300 text-black rounded-md hover:bg-gray-400 transition-colors"
-              >
-                Cancel
-              </button>
+                Date
+              </label>
+              <input
+                id="date"
+                type="date"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                value={
+                  newEntry.date
+                    ? new Date(newEntry.date).toISOString().split("T")[0]
+                    : new Date().toISOString().split("T")[0]
+                }
+                onChange={(e) =>
+                  setNewEntry({
+                    ...newEntry,
+                    date: new Date(e.target.value).toISOString(),
+                  })
+                }
+                required
+              />
             </div>
+
+            <button
+              type="submit"
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              {isEditing ? "Update" : "Submit"}
+            </button>
           </form>
         )}
 
@@ -384,57 +410,61 @@ export default function JournalMap() {
               </div>
             ))}
         </div>
+      </div>
 
-        <div className="mt-4">
-          <div className="mb-4">
-            <div className="flex items-center mb-2">
-              <Search className="w-4 h-4 mr-2" />
-              <input
-                type="text"
-                placeholder="Search entries..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-              />
-            </div>
-            <div className="flex items-center mb-2">
-              <Filter className="w-4 h-4 mr-2" />
-              <select
-                value={filterMood}
-                onChange={(e) => setFilterMood(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-              >
-                <option value="">All Moods</option>
-                {Object.keys(moodToColor).map((mood) => (
-                  <option key={mood} value={mood}>
-                    {mood}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center">
-              <Calendar className="w-4 h-4 mr-2" />
-              <input
-                type="date"
-                value={dateRange.start}
-                onChange={(e) =>
-                  setDateRange((prev) => ({ ...prev, start: e.target.value }))
-                }
-                className="w-1/2 px-3 py-2 border border-gray-300 rounded-md mr-2 text-black"
-              />
-              <input
-                type="date"
-                value={dateRange.end}
-                onChange={(e) =>
-                  setDateRange((prev) => ({ ...prev, end: e.target.value }))
-                }
-                className="w-1/2 px-3 py-2 border border-gray-300 rounded-md text-black"
-              />
-            </div>
+      <div ref={mapContainer} className="flex-grow h-full" />
+
+      <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-md max-w-xs">
+        <h3 className="text-lg font-semibold mb-2 text-black">
+          Filter Entries
+        </h3>
+        <div className="mb-2">
+          <div className="flex items-center mb-2">
+            <Search className="w-4 h-4 mr-2" />
+            <input
+              type="text"
+              placeholder="Search entries..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md text-black"
+            />
+          </div>
+          <div className="flex items-center mb-2">
+            <Filter className="w-4 h-4 mr-2" />
+            <select
+              value={filterMood}
+              onChange={(e) => setFilterMood(e.target.value)}
+              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md text-black"
+            >
+              <option value="">All Moods</option>
+              {Object.keys(moodToColor).map((mood) => (
+                <option key={mood} value={mood}>
+                  {mood}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center">
+            <Calendar className="w-4 h-4 mr-2" />
+            <input
+              type="date"
+              value={dateRange.start}
+              onChange={(e) =>
+                setDateRange((prev) => ({ ...prev, start: e.target.value }))
+              }
+              className="w-1/2 px-2 py-1 text-sm border border-gray-300 rounded-md mr-2 text-black"
+            />
+            <input
+              type="date"
+              value={dateRange.end}
+              onChange={(e) =>
+                setDateRange((prev) => ({ ...prev, end: e.target.value }))
+              }
+              className="w-1/2 px-2 py-1 text-sm border border-gray-300 rounded-md text-black"
+            />
           </div>
         </div>
       </div>
-      <div ref={mapContainer} className="flex-grow h-full" />
     </div>
   );
 }
